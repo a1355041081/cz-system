@@ -7,5 +7,6 @@ import lombok.Setter;
 @Setter
 public class EvalResult {
     DMU dmu;
+
     Double result;
 }

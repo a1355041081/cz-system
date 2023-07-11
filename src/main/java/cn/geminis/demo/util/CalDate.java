@@ -15,7 +15,7 @@ public class CalDate {
 
     public CalDate(String start, String end) throws ParseException {
         startCal = Calendar.getInstance();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM");
         Date startTime = dateFormat.parse(start);
         Date endTime = dateFormat.parse(end);
         startCal.setTime(startTime);
@@ -29,7 +29,7 @@ public class CalDate {
             allDates.add(startCal.get(Calendar.YEAR) + "-" + (startCal.get(Calendar.MONTH) + 1));
             startCal.add(Calendar.MONTH, 1);
         }
-        //allDates.add(startCal.get(Calendar.YEAR) + "-" + (startCal.get(Calendar.MONTH) + 1));
+        allDates.add(startCal.get(Calendar.YEAR) + "-" + (startCal.get(Calendar.MONTH) + 1));
         return allDates;
     }
 

@@ -1,5 +1,6 @@
 package cn.geminis.demo.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.vladmihalcea.hibernate.type.json.JsonStringType;
 import lombok.Getter;
 import lombok.Setter;
@@ -39,20 +40,19 @@ public class EvalRecordDetail {
     /**
      * 名称
      */
-    @Column(nullable = false, scale = 4)
-    @Digits(integer = 12,fraction = 4)
-    private BigDecimal value;
+    @Column(nullable = false)
+    private String value;
 
     /**
      * 时间：需要根据评价周期和评价时间范围计算得出
      */
     @Column(nullable = false)
-    private String time;
+    private String dmuName;
 
     /**
      * 定义与评价记录的多对一关系
      */
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "evalRecord")
     private EvalRecord evalRecord;
 

@@ -29,8 +29,8 @@ public class ExecuteEvalController {
         return deaTaskService.getEvalIndicator(id);
     }
 
-    @GetMapping(path = "/get/dums")
-    public List<DMUForm> getDMUs(@RequestBody EvalTaskWithPara evalTaskWithPara) throws ParseException {
+    @PostMapping(path = "/get/dums")
+    public List<DMU> getDMUs(@RequestBody EvalTaskWithPara evalTaskWithPara) throws ParseException {
         return deaTaskService.getDMUsByTask(evalTaskWithPara);
     }
 

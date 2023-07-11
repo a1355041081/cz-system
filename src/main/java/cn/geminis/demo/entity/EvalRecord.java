@@ -1,11 +1,14 @@
 package cn.geminis.demo.entity;
 
+import cn.geminis.demo.util.DateUtils;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.vladmihalcea.hibernate.type.json.JsonStringType;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.TypeDef;
 
 import javax.persistence.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -72,7 +75,9 @@ public class EvalRecord {
     /**
      * 定义与评价记录详情一对多的关系
      */
-    @OneToMany(mappedBy = "evalRecord", fetch = FetchType.LAZY)
+
+    @JsonIgnoreProperties({"evalRecord"})
+    @OneToMany(mappedBy = "evalRecord", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<EvalRecordDetail> evalRecordDetails = new ArrayList<>();
 
     /**
@@ -93,6 +98,18 @@ public class EvalRecord {
     @JoinColumn(name = "evalHistoryRecord")
     private EvalRecord evalHistoryRecord;
 
+    public String getRecordTime() {
+        return DateUtils.formatDate(recordTime);
+    }
+
+    public String getStartTime() {
+        return DateUtils.formatDate(startTime);
+    }
+
+    public String getEndTime() {
+        return DateUtils.formatDate(endTime);
+    }
+
     @PrePersist
     void setId() {
         if (Objects.isNull(id)) {
@@ -102,4 +119,5 @@ public class EvalRecord {
             recordTime = new Date(System.currentTimeMillis());
         }
     }
+
 }

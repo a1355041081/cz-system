@@ -5,6 +5,7 @@ import cn.geminis.data.jpa.GeminiRepository;
 import cn.geminis.demo.entity.EvalRecord;
 import cn.geminis.demo.entity.EvalTask;
 import cn.geminis.demo.entity.Material;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,10 @@ public class EvalRecordController {
 
     private final GeminiRepository geminiRepository;
 
+    @GetMapping(value = "/get/{id}")
+    public EvalRecord getOne(@PathVariable String id) {
+        return this.geminiRepository.findById(EvalRecord.class, id).get();
+    }
 
     @PostMapping
     public Page<EvalRecord> findPage(@RequestBody final QueryParameters queryParameters){

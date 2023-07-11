@@ -4,14 +4,10 @@ import cn.geminis.data.jpa.GeminiRepository;
 import cn.geminis.demo.ConfigParameter;
 import cn.geminis.demo.entity.*;
 import cn.geminis.demo.eval.DMU;
-import cn.geminis.demo.eval.DMUForm;
 import cn.geminis.demo.eval.EvalResult;
 import cn.geminis.demo.eval.IndicatorForDEA;
 import cn.geminis.demo.util.CalDate;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import ilog.concert.IloException;
 import ilog.concert.IloLinearNumExpr;
 import ilog.concert.IloNumVar;
@@ -19,8 +15,6 @@ import ilog.cplex.IloCplex;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.client.RestTemplate;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -154,16 +148,17 @@ public class DEA{
             for (String dName : allDMUs) {
                 DMU dmu = new DMU();
                 dmu.setName(dName);
+                HashMap<String, String> input = new HashMap<>();
+                HashMap<String, String> output = new HashMap<>();
                 for (IndicatorForDEA indi : indicators) {
-                    HashMap<String, String> t = new HashMap<>();
                     if (indi.getType().equals("input")) {
-                        t.put(indi.getName(), "");
-                        dmu.setInput(t);
+                        input.put(indi.getName(), "");
                     }else if(indi.getType().equals("output")) {
-                        t.put(indi.getName(), "");
-                        dmu.setOutput(t);
+                        output.put(indi.getName(), "");
                     }
                 }
+                dmu.setInput(input);
+                dmu.setOutput(output);
                 dmus.add(dmu);
             }
         }
@@ -181,6 +176,7 @@ public class DEA{
             //double e = 1.0;
             double e = Math.pow(10, -6);
             for (DMU dmu : dmus) {
+
                 IloCplex cplex = new IloCplex();
                 IloNumVar OE = cplex.numVar(-Double.MAX_VALUE, Double.MAX_VALUE, "OE");
                 IloNumVar[] lambdas = cplex.numVarArray(dmus.size(), 0, Double.MAX_VALUE);
@@ -189,6 +185,7 @@ public class DEA{
 
                 IloLinearNumExpr object1 = cplex.linearNumExpr();
                 object1.addTerm(1.0, OE);
+
 
 //                int length = 0;
 //                //define e
@@ -229,8 +226,8 @@ public class DEA{
                     for (int i = 0; i < dmus.size(); i++) {
                         expr.addTerm(lambdas[i], Double.parseDouble(dmus.get(i).getInput().get(key)));
                     }
-                    expr.addTerm(OE, -Double.parseDouble(dmus.get(k).getInput().get(key)));
                     expr.addTerm(1.0, sNegitive[j]);
+                    expr.addTerm(OE, -Double.parseDouble(dmus.get(k).getInput().get(key)));
                     cplex.addEq(expr, 0);
                     j++;
                 }
@@ -241,35 +238,57 @@ public class DEA{
                         expr.addTerm(lambdas[i], Double.parseDouble(dmus.get(i).getOutput().get(key)));
                     }
                     expr.addTerm(-1.0, sPositive[l]);
+
                     cplex.addEq(expr, Double.parseDouble(dmus.get(k).getOutput().get(key)));
                     l++;
                 }
                 if (cplex.solve()) {
+                    double objValue = (double) Math.round(cplex.getObjValue() * 1000) / 1000;
                     EvalResult evalResult = new EvalResult();
-                    evalResult.setDmu(dmu);
-                    evalResult.setResult(cplex.getObjValue());
+                    DMU resultDMU = (DMU) dmu.clone();
+
+                    evalResult.setResult(objValue);
                     result.add(evalResult);
-                    System.out.println("Solution : " + dmu.getName() + " value = " + cplex.getObjValue());
-                    for (int m = 0; m < m1; m++) {
-                        double value = cplex.getValue(sNegitive[m]);
+
+                    boolean flag = true;
+                    int mI = 0;
+                    for (String key : resultDMU.getInput().keySet()) {
+                        double value = (double) Math.round(cplex.getValue(sNegitive[mI++]) * 1000) / 1000;
+                        if (value != 0) flag = false;
+                        String originValue = resultDMU.getInput().get(key);
+                        resultDMU.getInput().put(key, originValue + " -" + value);
+
                         System.out.println("sNegitive : " + value);
                     }
-                    for (int m = 0; m < m2; m++) {
-                        double value = cplex.getValue(sPositive[m]);
+                    int mO = 0;
+                    for (String key : resultDMU.getOutput().keySet()) {
+                        double value = (double) Math.round(cplex.getValue(sPositive[mO++]) * 1000) / 1000;
+                        if (value != 0) flag = false;
+                        String originValue = resultDMU.getOutput().get(key);
+                        resultDMU.getOutput().put(key, originValue + " +" + value);
+
                         System.out.println("sPositive : " + value);
+                    }
+                    evalResult.setDmu(resultDMU);
+                    System.out.println("Solution : " + dmu.getName() + " value = " + objValue);
+                    if (objValue == 1 && flag) {
+                        System.out.println(dmu.getName() + " : 强有效");
+                    }else if(objValue == 1 && !flag) {
+                        System.out.println(dmu.getName() + " : 弱有效");
+                    }else {
+                        System.out.println(dmu.getName() + " : 无效");
                     }
                 }
                 cplex.end();
                 k++;
             }
-        }catch (IloException e) {
-            e.printStackTrace();
-        } finally {
             setEvalRecord(result);
+        }catch (IloException | CloneNotSupportedException e) {
+            e.printStackTrace();
         }
     }
 
-    private void setEvalRecord(List<EvalResult> evalRecords) throws ParseException {
+    private void setEvalRecord(List<EvalResult> evalResults) throws ParseException {
         EvalRecord evalRecord = new EvalRecord();
         EvalTask evalTask = this.geminiRepository.findById(EvalTask.class, taskId).get();
         evalRecord.setEvalTask(evalTask);
@@ -277,12 +296,45 @@ public class DEA{
         evalRecord.setCycle(cycle);
         evalRecord.setMethod("DEA");
         evalRecord.setOperator("测试");
-        String pattern = "yyyy-MM-dd";
+        String pattern = "yyyy-MM";
         SimpleDateFormat dateFormat = new SimpleDateFormat(pattern);
         evalRecord.setStartTime(dateFormat.parse(start));
         evalRecord.setEndTime(dateFormat.parse(end));
         this.geminiRepository.save(evalRecord);
-        //将evalRecords结果保存到detail中
+        for (EvalResult evalResult : evalResults) {
+            DMU dmu = evalResult.getDmu();
+            Double value = evalResult.getResult();
+            EvalRecordDetail detailForDMU = new EvalRecordDetail();
+            detailForDMU.setName(dmu.getName());
+            detailForDMU.setType("DMU");
+            detailForDMU.setDmuName(dmu.getName());
+            detailForDMU.setValue(Double.toString(value));
+            detailForDMU.setEvalRecord(evalRecord);
+
+            evalRecord.getEvalRecordDetails().add(detailForDMU);
+
+            for (String key : dmu.getInput().keySet()) {
+                EvalRecordDetail detailForIndi = new EvalRecordDetail();
+                detailForIndi.setName(key);
+                detailForIndi.setDmuName(dmu.getName());
+                detailForIndi.setType("input");
+                detailForIndi.setValue(dmu.getInput().get(key));
+                detailForIndi.setEvalRecord(evalRecord);
+                evalRecord.getEvalRecordDetails().add(detailForIndi);
+            }
+
+            for (String key : dmu.getOutput().keySet()) {
+                EvalRecordDetail detailForIndi = new EvalRecordDetail();
+                detailForIndi.setName(key);
+                detailForIndi.setDmuName(dmu.getName());
+                detailForIndi.setType("output");
+                detailForIndi.setValue(dmu.getOutput().get(key));
+                detailForIndi.setEvalRecord(evalRecord);
+                evalRecord.getEvalRecordDetails().add(detailForIndi);
+            }
+
+        }
+        this.geminiRepository.save(evalRecord);
     }
 
     public List<String> getCommonUrls() {
@@ -306,20 +358,5 @@ public class DEA{
         } else if (type.equals("多环节")) {
 
         }
-    }
-
-    public List<DMUForm> getDMUsForm() {
-        List<DMUForm> dmuForms = new ArrayList<>();
-        for (DMU dmu : dmus) {
-            DMUForm dmuForm = new DMUForm();
-            for (IndicatorForDEA indicator : indicators) {
-                EvalIndicator ind = this.geminiRepository.findById(EvalIndicator.class, indicator.getId()).get();
-                dmuForm.setIndicator(ind.getName());
-                Boolean disable = ind.getDataSource().equals("dataSource");
-                dmuForm.setDisable(disable);
-            }
-            dmuForms.add(dmuForm);
-        }
-        return dmuForms;
     }
 }

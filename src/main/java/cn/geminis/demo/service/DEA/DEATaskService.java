@@ -3,7 +3,6 @@ package cn.geminis.demo.service.DEA;
 import cn.geminis.data.jpa.GeminiRepository;
 import cn.geminis.demo.entity.*;
 import cn.geminis.demo.eval.DMU;
-import cn.geminis.demo.eval.DMUForm;
 import cn.geminis.demo.eval.EvalTaskWithPara;
 import cn.geminis.demo.service.ExecuteEval;
 import lombok.Getter;
@@ -23,7 +22,7 @@ public class DEATaskService implements ExecuteEval {
 
     private final GeminiRepository geminiRepository;
 
-    public List<DMUForm> getDMUsByTask(EvalTaskWithPara evalTaskWithPara) throws ParseException {
+    public List<DMU> getDMUsByTask(EvalTaskWithPara evalTaskWithPara) throws ParseException {
         DEA dea = new DEA();
         dea.setGeminiRepository(geminiRepository);
         dea.setStart(evalTaskWithPara.getStartTime());
@@ -33,7 +32,8 @@ public class DEATaskService implements ExecuteEval {
         dea.setIndicators(evalTaskWithPara.getCommonIndicators());
         dea.setTaskId(evalTaskWithPara.getTaskId());
         dea.initAllDMUs();
-        return dea.getDMUsForm();
+        dea.calEvalDataByAuto();
+        return dea.getDmus();
     }
 
     public void executeEvalTask(EvalTaskWithPara evalTaskWithPara, List<DMU> dmus) throws ParseException {

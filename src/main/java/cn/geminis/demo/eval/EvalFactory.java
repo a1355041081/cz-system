@@ -17,7 +17,7 @@ public class EvalFactory {
             case ConfigParameter.EvalMethodForDEA:
                 return deaTaskService;
             default:
-                throw new IllegalArgumentException("Invalid user service type: " + method);
+                throw new IllegalArgumentException("Invalid service type: " + method);
         }
     }
 }
