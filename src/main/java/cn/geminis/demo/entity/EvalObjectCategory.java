@@ -27,7 +27,7 @@ public class EvalObjectCategory {
     /**
      * 类别名称
      */
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
 
     /**

@@ -1,5 +1,6 @@
 package cn.geminis.demo.entity;
 
+import cn.geminis.demo.util.DateUtils;
 import com.vladmihalcea.hibernate.type.json.JsonStringType;
 import lombok.Getter;
 import lombok.Setter;
@@ -36,6 +37,10 @@ public class EvalTask {
      */
     @Temporal(TemporalType.TIMESTAMP)
     private Date createTime;
+
+    public String getCreateTime() {
+        return DateUtils.formatDate(createTime);
+    }
 
     /**
      * 评价实体类型

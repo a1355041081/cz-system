@@ -10,6 +10,7 @@ import cn.geminis.demo.util.CalDate;
 
 import ilog.concert.IloException;
 import ilog.concert.IloLinearNumExpr;
+import ilog.concert.IloNumExpr;
 import ilog.concert.IloNumVar;
 import ilog.cplex.IloCplex;
 import lombok.Getter;
@@ -247,14 +248,13 @@ public class DEA{
                     EvalResult evalResult = new EvalResult();
                     DMU resultDMU = (DMU) dmu.clone();
 
-                    evalResult.setResult(objValue);
                     result.add(evalResult);
 
                     boolean flag = true;
                     int mI = 0;
                     for (String key : resultDMU.getInput().keySet()) {
+                        if (cplex.getValue(sNegitive[mI]) != 0) flag = false;
                         double value = (double) Math.round(cplex.getValue(sNegitive[mI++]) * 1000) / 1000;
-                        if (value != 0) flag = false;
                         String originValue = resultDMU.getInput().get(key);
                         resultDMU.getInput().put(key, originValue + " -" + value);
 
@@ -262,22 +262,35 @@ public class DEA{
                     }
                     int mO = 0;
                     for (String key : resultDMU.getOutput().keySet()) {
+                        if (cplex.getValue(sPositive[mO]) != 0) flag = false;
                         double value = (double) Math.round(cplex.getValue(sPositive[mO++]) * 1000) / 1000;
-                        if (value != 0) flag = false;
                         String originValue = resultDMU.getOutput().get(key);
                         resultDMU.getOutput().put(key, originValue + " +" + value);
 
                         System.out.println("sPositive : " + value);
                     }
-                    evalResult.setDmu(resultDMU);
-                    System.out.println("Solution : " + dmu.getName() + " value = " + objValue);
+                    String SE;
+                    double sum = 0;
+                    for (IloNumVar lambda : lambdas) {
+                        double value = cplex.getValue(lambda);
+                        sum += value;
+                    }
+                    if (sum == 1.0) SE = "规模报酬固定";
+                    else if (sum < 1) SE = "规模报酬递增";
+                    else SE = "规模报酬递减";
+
+
                     if (objValue == 1 && flag) {
+                        SE = "规模报酬固定";
                         System.out.println(dmu.getName() + " : 强有效");
                     }else if(objValue == 1 && !flag) {
                         System.out.println(dmu.getName() + " : 弱有效");
                     }else {
                         System.out.println(dmu.getName() + " : 无效");
                     }
+                    System.out.println("Solution : " + dmu.getName() + " value = " + objValue + "   " +SE);
+                    evalResult.setDmu(resultDMU);
+                    evalResult.setResult(Arrays.asList(Double.toString(objValue), SE));
                 }
                 cplex.end();
                 k++;
@@ -303,15 +316,24 @@ public class DEA{
         this.geminiRepository.save(evalRecord);
         for (EvalResult evalResult : evalResults) {
             DMU dmu = evalResult.getDmu();
-            Double value = evalResult.getResult();
-            EvalRecordDetail detailForDMU = new EvalRecordDetail();
-            detailForDMU.setName(dmu.getName());
-            detailForDMU.setType("DMU");
-            detailForDMU.setDmuName(dmu.getName());
-            detailForDMU.setValue(Double.toString(value));
-            detailForDMU.setEvalRecord(evalRecord);
+            List<String> value = evalResult.getResult();
+            EvalRecordDetail detailForDMUOE = new EvalRecordDetail();
+            detailForDMUOE.setName(dmu.getName());
+            detailForDMUOE.setType("OE");
+            detailForDMUOE.setDmuName(dmu.getName());
+            detailForDMUOE.setValue(value.get(0));
+            detailForDMUOE.setEvalRecord(evalRecord);
 
-            evalRecord.getEvalRecordDetails().add(detailForDMU);
+            evalRecord.getEvalRecordDetails().add(detailForDMUOE);
+
+            EvalRecordDetail detailForDMUSE = new EvalRecordDetail();
+            detailForDMUSE.setName(dmu.getName());
+            detailForDMUSE.setType("SE");
+            detailForDMUSE.setDmuName(dmu.getName());
+            detailForDMUSE.setValue(value.get(1));
+            detailForDMUSE.setEvalRecord(evalRecord);
+
+            evalRecord.getEvalRecordDetails().add(detailForDMUSE);
 
             for (String key : dmu.getInput().keySet()) {
                 EvalRecordDetail detailForIndi = new EvalRecordDetail();
