@@ -70,12 +70,20 @@ public class EvalIndicator {
      * 数据来源
      */
     @Column(nullable = false)
-    private String dataSource;
+    private String dataSource = "excel";
+
+    /**
+     * 指标类型
+     */
+    @Enumerated(EnumType.STRING)
+    private IndicatorType indicatorType;
 
     /**
      * 定义与评价对象类别的多对多关系
      */
-    @ManyToMany(mappedBy = "evalIndicatorsByCategory", fetch = FetchType.LAZY)
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "evalObjectCategoryAndEvalIndicator", inverseJoinColumns = @JoinColumn(name = "evalObjectCategoryId")
+            ,joinColumns=@JoinColumn(name = "evalIndicatorId"))
     private List<EvalObjectCategory> evalObjectCategories = new ArrayList<>();
 
     /**
@@ -98,4 +106,10 @@ public class EvalIndicator {
             id = UUID.randomUUID().toString();
         }
     }
+
+    public enum IndicatorType {
+        INPUT_INDICATOR,
+        OUTPUT_INDICATOR
+    }
+
 }

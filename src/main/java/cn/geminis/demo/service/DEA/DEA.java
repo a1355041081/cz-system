@@ -10,12 +10,12 @@ import cn.geminis.demo.util.CalDate;
 
 import ilog.concert.IloException;
 import ilog.concert.IloLinearNumExpr;
-import ilog.concert.IloNumExpr;
 import ilog.concert.IloNumVar;
 import ilog.cplex.IloCplex;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import org.springframework.util.Assert;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -29,9 +29,9 @@ public class DEA{
     private String end;
     private String type;
     private String cycle;
-    private String taskId;
 
     private List<IndicatorForDEA> indicators = new ArrayList<>(); //经过进一步筛选后的指标
+    private List<EvalObject> evalObjects = new ArrayList<>(); //经过进一步筛选后的指标
     private Map<String, Map<String, List<String>>> evalOriginData = new HashMap<>(); // 合并所获取的数据集，key: 表名、value: List值列表
     //private Map<HashMap<String, String>, HashMap<String, String>> evalData = new HashMap<>();
     private List<DMU> dmus = new ArrayList<>();
@@ -98,39 +98,37 @@ public class DEA{
 
     public void setEvalDataByHandwork(List<DMU> ds){
         for (DMU d : ds) {
-            for (DMU dmu : dmus) {
-                if (d.getName().equals(dmu.getName())) {
-                    for (String key : d.getInput().keySet()) {
-                        dmu.getInput().put(key, d.getInput().get(key));
-                    }
-                    for (String key : d.getOutput().keySet()) {
-                        dmu.getOutput().put(key, d.getOutput().get(key));
-                    }
-                    break;
-                }
+            for (String key : d.getInput().keySet()) {
+                d.getInput().put(key, d.getInput().get(key));
             }
+            for (String key : d.getOutput().keySet()) {
+                d.getOutput().put(key, d.getOutput().get(key));
+            }
+            dmus.add(d);
         }
     }
 
-    public void initAllDMUs() throws ParseException {
+    public List<DMU> initAllDMUs() throws ParseException {
+        List<DMU> ds = new ArrayList<>();
         if (cycle.equals(ConfigParameter.EvalCycleByMaterial)) {
-            EvalTask evalTask = new EvalTask();
-            Optional<?> optional = this.geminiRepository.findById(EvalTask.class, taskId);
-            if (optional.isPresent()) evalTask = (EvalTask) optional.get();
-            for (EvalObject object : evalTask.getEvalObjectsByEvalTask()) {
+//            EvalTask evalTask = new EvalTask();
+//            Optional<?> optional = this.geminiRepository.findById(EvalTask.class, taskId);
+//            if (optional.isPresent()) evalTask = (EvalTask) optional.get();
+            for (EvalObject object : evalObjects) {
                 DMU dmu = new DMU();
                 dmu.setName(object.getName());
+                HashMap<String, String> input = new HashMap<>();
+                HashMap<String, String> output = new HashMap<>();
                 for (IndicatorForDEA indi : indicators) {
-                    HashMap<String, String> t = new HashMap<>();
-                    if (indi.getType().equals("input")) {
-                        t.put(indi.getName(), "");
-                        dmu.setInput(t);
-                    }else if(indi.getType().equals("output")) {
-                        t.put(indi.getName(), "");
-                        dmu.setOutput(t);
+                    if (indi.getType().equals("INPUT_INDICATOR")) {
+                        input.put(indi.getName(), "");
+                    }else if(indi.getType().equals("OUTPUT_INDICATOR")) {
+                        output.put(indi.getName(), "");
                     }
                 }
-                dmus.add(dmu);
+                dmu.setInput(input);
+                dmu.setOutput(output);
+                ds.add(dmu);
             }
         }else {
             CalDate calDate = new CalDate(start, end);
@@ -152,24 +150,25 @@ public class DEA{
                 HashMap<String, String> input = new HashMap<>();
                 HashMap<String, String> output = new HashMap<>();
                 for (IndicatorForDEA indi : indicators) {
-                    if (indi.getType().equals("input")) {
+                    if (indi.getType().equals("INPUT_INDICATOR")) {
                         input.put(indi.getName(), "");
-                    }else if(indi.getType().equals("output")) {
+                    }else if(indi.getType().equals("OUTPUT_INDICATOR")) {
                         output.put(indi.getName(), "");
                     }
                 }
                 dmu.setInput(input);
                 dmu.setOutput(output);
-                dmus.add(dmu);
+                ds.add(dmu);
             }
         }
+        return ds;
     }
 
-    public void singleRoundTask() throws ParseException {
-        //单环节DEA算法， 结果存储在record中
-        List<EvalResult> result = new ArrayList<>();
-        try {
+    public String singleRoundTask(String categoryId, String recordId, List<String> objectIds) throws ParseException {
 
+        List<EvalResult> result = new ArrayList<>();
+        String resId = null;
+        try {
             int m1 = dmus.get(0).getInput().size();
             int m2 = dmus.get(0).getOutput().size();
 
@@ -188,32 +187,11 @@ public class DEA{
                 object1.addTerm(1.0, OE);
 
 
-//                int length = 0;
-//                //define e
-//                for (String key : dmu.getInput().keySet()) {
-//                    int t = 0;
-//                    for (DMU d : dmus) {
-//                        MathCal mathCal = new MathCal();
-//                        double[] input = new double[dmus.size()];
-//                        input[t++] = Double.parseDouble(d.getInput().get(key));
-//                        length = mathCal.getMaxLength(input);
-//                    }
-//                }
-//                double e = Math.pow(10, -length);
+
 
                 for (int i = 0; i < m1; i++) {
                     object1.addTerm(-e, sNegitive[i]);
                 }
-//                for (String key : dmu.getOutput().keySet()) {
-//                    int t = 0;
-//                    for (DMU d : dmus) {
-//                        MathCal mathCal = new MathCal();
-//                        double[] input = new double[dmus.size()];
-//                        input[t++] = Double.parseDouble(d.getOutput().get(key));
-//                        length = mathCal.getMaxLength(input);
-//                    }
-//                }
-//                e = Math.pow(10, -length);
 
                 for (int i = 0; i < m2; i++) {
                     object1.addTerm(-e, sPositive[i]);
@@ -295,24 +273,42 @@ public class DEA{
                 cplex.end();
                 k++;
             }
-            setEvalRecord(result);
+            resId = setEvalRecord(result, categoryId, recordId, objectIds);
         }catch (IloException | CloneNotSupportedException e) {
             e.printStackTrace();
         }
+        return resId;
     }
 
-    private void setEvalRecord(List<EvalResult> evalResults) throws ParseException {
+
+
+    private String setEvalRecord(List<EvalResult> evalResults, String categoryId, String recordId, List<String> objectIds) throws ParseException {
         EvalRecord evalRecord = new EvalRecord();
-        EvalTask evalTask = this.geminiRepository.findById(EvalTask.class, taskId).get();
-        evalRecord.setEvalTask(evalTask);
-        evalRecord.setName(evalTask.getName()+"的评价记录");
+        EvalRecord patRecord = null;
+        List<EvalRecord> childRecords = null;
+        try {
+            if(recordId!=null) {
+                patRecord = this.geminiRepository.findById(EvalRecord.class, recordId).get();
+                childRecords = patRecord.getChildRecords();
+            } else
+                childRecords = new ArrayList<>();
+        } catch (Exception e) {
+            // Log the error if necessary
+            System.out.println("An error occurred: " + e.getMessage());
+        }
+
+        EvalObjectCategory evalObjectCategory = this.geminiRepository.findById(EvalObjectCategory.class, categoryId).get();
+        evalRecord.setEvalObjectCategory(evalObjectCategory);
+        evalRecord.setName(evalObjectCategory.getName()+"的评价记录");
         evalRecord.setCycle(cycle);
         evalRecord.setMethod("DEA");
         evalRecord.setOperator("测试");
+        evalRecord.setEvalHistoryRecord(patRecord);
         String pattern = "yyyy-MM";
         SimpleDateFormat dateFormat = new SimpleDateFormat(pattern);
         evalRecord.setStartTime(dateFormat.parse(start));
         evalRecord.setEndTime(dateFormat.parse(end));
+        evalRecord.setObjectIds(objectIds);
         this.geminiRepository.save(evalRecord);
         for (EvalResult evalResult : evalResults) {
             DMU dmu = evalResult.getDmu();
@@ -354,9 +350,10 @@ public class DEA{
                 detailForIndi.setEvalRecord(evalRecord);
                 evalRecord.getEvalRecordDetails().add(detailForIndi);
             }
-
         }
-        this.geminiRepository.save(evalRecord);
+        childRecords.add(evalRecord);
+        if(patRecord!=null) patRecord.setChildRecords(childRecords);
+        return this.geminiRepository.save(evalRecord).getId();
     }
 
     public List<String> getCommonUrls() {
@@ -374,11 +371,7 @@ public class DEA{
         return new ArrayList<>(accessUrlSet);
     }
 
-    public void execute() throws ParseException {
-        if (type.equals("单环节")) {
-            singleRoundTask();
-        } else if (type.equals("多环节")) {
-
-        }
+    public String execute(String categoryId, String recordId, List<String> objectIds) throws ParseException {
+        return singleRoundTask(categoryId, recordId, objectIds);
     }
 }

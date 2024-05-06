@@ -2,14 +2,14 @@ package cn.geminis.demo.controller;
 
 import cn.geminis.core.data.query.QueryParameters;
 import cn.geminis.data.jpa.GeminiRepository;
-import cn.geminis.demo.entity.EvalObjectCategory;
-import cn.geminis.demo.entity.Material;
-import cn.geminis.demo.entity.ParaData;
+import cn.geminis.demo.entity.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/demo/category")
@@ -17,10 +17,16 @@ import java.util.List;
 public class EvalObjectCategoryController {
     private final GeminiRepository geminiRepository;
 
-    @PostMapping(path = "/get/{id}")
-    public <T> T getOne(@PathVariable String id){
-        return (T) this.geminiRepository.findById(EvalObjectCategory.class, id);
+    @GetMapping(path = "/get/{id}/getEvalObjects")
+    public List<EvalObject> getOne(@PathVariable String id){
+        Optional<EvalObjectCategory> category =  this.geminiRepository.findById(EvalObjectCategory.class, id);
+        return category.get().getEvalObjects();
     }
+//    @GetMapping(path = "/get/{id}/getEvalIndicator")
+//    public HashMap<String, List<EvalIndicator>> getOne(@PathVariable String id){
+//        Optional<EvalObjectCategory> category =  this.geminiRepository.findById(EvalObjectCategory.class, id);
+//        return category.get().getEvalObjects();
+//    }
 
     @PostMapping
     public Page<EvalObjectCategory> findPage(@RequestBody final QueryParameters queryParameters){

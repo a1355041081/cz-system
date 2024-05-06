@@ -1,6 +1,7 @@
 package cn.geminis.demo.eval;
 
 import cn.geminis.demo.entity.EvalIndicator;
+import cn.geminis.demo.entity.EvalObjectCategory;
 import cn.geminis.demo.entity.EvalTask;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,5 +19,6 @@ public class EvalTaskWithPara {
     String type;
     String cycle;
     String method;
-    List<IndicatorForDEA> commonIndicators = new ArrayList<>();
+
+    List<EvalObjectCategory> evalObjectCategory_List;
 }

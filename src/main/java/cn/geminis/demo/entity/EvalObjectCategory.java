@@ -1,5 +1,7 @@
 package cn.geminis.demo.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.vladmihalcea.hibernate.type.json.JsonStringType;
 import lombok.Getter;
 import lombok.Setter;
@@ -33,16 +35,24 @@ public class EvalObjectCategory {
     /**
      * 定义与评价指标的多对多关系
      */
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinTable(name = "evalObjectCategoryAndEvalIndicator", inverseJoinColumns = @JoinColumn(name = "evalIndicatorId")
             ,joinColumns=@JoinColumn(name = "evalObjectCategoryId"))
     private List<EvalIndicator> evalIndicatorsByCategory = new ArrayList<>();
 
     /**
+     *
      * 定义与评价对象的一对多关系
      */
+    @JsonIgnoreProperties({"evalObjectCategory"})
     @OneToMany(mappedBy = "evalObjectCategory", fetch = FetchType.LAZY)
     private List<EvalObject> evalObjects = new ArrayList<>();
+
+    /**
+     * 定义与评价记录的一对多关系
+     */
+    @OneToMany(mappedBy = "evalObjectCategory", fetch = FetchType.LAZY)
+    private List<EvalRecord> evalRecords;
 
     @PrePersist
     void setId() {

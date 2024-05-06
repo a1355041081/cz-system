@@ -5,11 +5,12 @@ import cn.geminis.demo.entity.EvalIndicator;
 import cn.geminis.demo.eval.*;
 import cn.geminis.demo.service.DEA.DEATaskService;
 import cn.geminis.demo.service.ExecuteEval;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+
 import java.text.ParseException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,15 +31,15 @@ public class ExecuteEvalController {
     }
 
     @PostMapping(path = "/get/dums")
-    public List<DMU> getDMUs(@RequestBody EvalTaskWithPara evalTaskWithPara) throws ParseException {
+    public HashMap<String, List<DMU>> getDMUs(@RequestBody EvalTaskWithPara evalTaskWithPara) throws ParseException {
         return deaTaskService.getDMUsByTask(evalTaskWithPara);
     }
 
     @PostMapping(path = "/set/evalContent")
-    public void executeDEATask(@RequestBody ExecuteEntity executeEntity) throws ParseException {
+    public String executeDEATask(@RequestBody ExecuteEntity executeEntity) throws ParseException {
         String method = executeEntity.getEvalTaskWithPara().getMethod();
         ExecuteEval executeEval = evalFactory.getExecuteEval(method);
-        executeEval.executeEvalTask(executeEntity.getEvalTaskWithPara(), executeEntity.getDmuList());
+        return executeEval.executeEvalTask(executeEntity.getEvalTaskWithPara(), executeEntity.getDmuList());
     }
 
 

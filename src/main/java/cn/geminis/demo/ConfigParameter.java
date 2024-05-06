@@ -22,7 +22,7 @@ public class ConfigParameter {
     public final static String EvalCycleByMonth = "按月度";
     public final static String EvalCycleByQuarter= "按季度";
     public final static String EvalCycleByYear = "按年度";
-    public final static String EvalCycleByMaterial = "按物资";
+    public final static String EvalCycleByMaterial = "按对象";
 
 
     public final static String EvalMethodForDEA = "DEA";

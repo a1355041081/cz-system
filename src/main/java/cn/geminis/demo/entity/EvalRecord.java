@@ -1,10 +1,14 @@
 package cn.geminis.demo.entity;
 
 import cn.geminis.demo.util.DateUtils;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.vladmihalcea.hibernate.type.json.JsonStringType;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.LazyCollection;
+import org.hibernate.annotations.LazyCollectionOption;
 import org.hibernate.annotations.TypeDef;
 
 import javax.persistence.*;
@@ -84,19 +88,28 @@ public class EvalRecord {
      * 与评价任务的多对一关系
      */
     @ManyToOne
+    @JoinColumn(name = "evalObjectCategoryId")
+    private EvalObjectCategory evalObjectCategory;
+
+    @ElementCollection
+    private List<String> objectIds = new ArrayList<>();
+
+    /**
+     * 与评价任务的多对一关系
+     */
+    @ManyToOne
     @JoinColumn(name = "evalTaskId")
     private EvalTask evalTask;
 
+    @JsonIgnoreProperties({"evalHistoryRecord"})
+    @OneToMany(mappedBy = "evalHistoryRecord",fetch = FetchType.LAZY,cascade = CascadeType.REMOVE)
+    private List<EvalRecord> childRecords = new ArrayList<>();
 
-    @OneToOne(mappedBy = "evalHistoryRecord")
-    private EvalRecord evalRecord;
-
-    /**
-     * 历史（上一步）评价结果id
-     */
-    @OneToOne(optional = true)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "evalHistoryRecord")
     private EvalRecord evalHistoryRecord;
+
+
 
     public String getRecordTime() {
         return DateUtils.formatDate(recordTime);

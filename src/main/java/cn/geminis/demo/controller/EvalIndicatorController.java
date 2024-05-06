@@ -2,6 +2,7 @@ package cn.geminis.demo.controller;
 
 import cn.geminis.data.jpa.GeminiRepository;
 import cn.geminis.demo.entity.EvalIndicator;
+import cn.geminis.demo.entity.EvalObjectCategory;
 import cn.geminis.demo.entity.ParaData;
 import lombok.RequiredArgsConstructor;
 import cn.geminis.core.data.query.QueryParameters;
@@ -9,6 +10,7 @@ import cn.geminis.core.data.query.QueryParameters;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;

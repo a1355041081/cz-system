@@ -1,5 +1,6 @@
 package cn.geminis.demo.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.vladmihalcea.hibernate.type.json.JsonStringType;
 import lombok.Getter;
 import lombok.Setter;
@@ -49,6 +50,13 @@ public class EvalObject {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "evalObjectCategory")
     private EvalObjectCategory evalObjectCategory;
+
+    /**
+     * 定义与评价记录的多对一关系
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "evalRecord")
+    private EvalRecord evalRecord;
 
     /**
      * 定义评价对象与物资的多对多关系

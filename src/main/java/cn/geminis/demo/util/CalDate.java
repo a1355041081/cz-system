@@ -43,25 +43,7 @@ public class CalDate {
             allDates.add(dateStr);
             startCal.add(Calendar.MONTH, 3);
         }
-        int year = startCal.get(Calendar.YEAR);
-        int month = startCal.get(Calendar.MONTH) + 1;
-        int quarter = (month - 1) / 3 + 1;
-        String dateStr = year + "-Q" + quarter;
-        allDates.add(dateStr);
         return allDates;
-//        for (int i = startYear; i<=endYear; i++){
-//            ConfigParameter configParameter = new ConfigParameter();
-//            configParameter.mapQuarterToMonthAndYear(startYear);
-//            if(startYear != endYear){
-//                for (int j = startQuarter; j<=4; j++){
-//                    allDates.add(configParameter.getQuarterToMonth().get(j));
-//                }
-//            }else{
-//                for (int j = startQuarter; j<=endQuarter; j++){
-//                    allDates.add(configParameter.getQuarterToMonth().get(j));
-//                }
-//            }
-//        }
     }
     public List<String> calYearBetweenStartAndEnd(){
         List<String> allDates = new ArrayList<>();
@@ -71,9 +53,6 @@ public class CalDate {
             allDates.add(dateStr);
             startCal.add(Calendar.YEAR, 1);
         }
-        int year = startCal.get(Calendar.YEAR);
-        String dateStr = String.valueOf(year);
-        allDates.add(dateStr);
         return allDates;
     }
 }
